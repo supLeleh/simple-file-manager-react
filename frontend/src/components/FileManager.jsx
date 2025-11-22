@@ -332,6 +332,7 @@ const FileManager = () => {
           {fileType === 'config' ? (
             <ConfigForm
               initialData={currentFile.content}
+              isEditing={isEditing}  // Passa la prop isEditing
               onSave={(jsonContent) => {
                 setCurrentFile(prev => ({ ...prev, content: jsonContent }));
                 handleSave();

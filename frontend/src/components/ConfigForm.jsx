@@ -1,21 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Row, Col, Button, Card, Accordion } from 'react-bootstrap';
 
-const ConfigForm = ({ initialData, onSave, onCancel }) => {
-  const [config, setConfig] = useState({
-    scenario_name: '',
-    host_interface: null,
-    peering_lan: { '4': '', '6': '' },
-    peering_configuration: { type: 'ixp_manager', path: '' },
-    rib_dumps: {
-      type: 'open_bgpd',
-      dumps: { '4': '', '6': '' }
-    },
-    route_servers: {}
-  });
+const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
+  const getInitialConfig = () => {
+    if (isEditing && initialData) {
+      try {
+        return typeof initialData === 'string' ? JSON.parse(initialData) : initialData;
+      } catch (e) {
+        console.error('Errore nel parsing del config:', e);
+      }
+    }
+    // Config vuoto per creazione nuovo file
+    return {
+      scenario_name: '',
+      host_interface: null,
+      peering_lan: { '4': '', '6': '' },
+      peering_configuration: { type: 'ixp_manager', path: '' },
+      rib_dumps: {
+        type: 'open_bgpd',
+        dumps: { '4': '', '6': '' }
+      },
+      route_servers: {}
+    };
+  };
+
+  const [config, setConfig] = useState(getInitialConfig());
 
   useEffect(() => {
-    if (initialData) {
+    if (isEditing && initialData) {
       try {
         const parsed = typeof initialData === 'string' 
           ? JSON.parse(initialData) 
@@ -25,7 +37,7 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
         console.error('Errore nel parsing del config:', e);
       }
     }
-  }, [initialData]);
+  }, [initialData, isEditing]);
 
   const handleChange = (path, value) => {
     setConfig(prev => {
@@ -99,7 +111,7 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
               type="text"
               value={config.scenario_name}
               onChange={(e) => handleChange('scenario_name', e.target.value)}
-              placeholder="es: namex_ixp"
+              placeholder="Esempio: namex_ixp, rome_ixp, milan_ixp"
               required
             />
           </Form.Group>
@@ -110,8 +122,11 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
               type="text"
               value={config.host_interface || ''}
               onChange={(e) => handleChange('host_interface', e.target.value || null)}
-              placeholder="Opzionale (lascia vuoto per null)"
+              placeholder="Esempio: eth0, wlan0 (opzionale, lascia vuoto per null)"
             />
+            <Form.Text className="text-muted">
+              Lascia vuoto se non necessario
+            </Form.Text>
           </Form.Group>
         </Card.Body>
       </Card>
@@ -123,24 +138,24 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
           <Row>
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>IPv4</Form.Label>
+                <Form.Label>IPv4 Network</Form.Label>
                 <Form.Control
                   type="text"
                   value={config.peering_lan['4']}
                   onChange={(e) => handleChange('peering_lan.4', e.target.value)}
-                  placeholder="es: 193.201.28.0/23"
+                  placeholder="Esempio: 193.201.28.0/23"
                   required
                 />
               </Form.Group>
             </Col>
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>IPv6</Form.Label>
+                <Form.Label>IPv6 Network</Form.Label>
                 <Form.Control
                   type="text"
                   value={config.peering_lan['6']}
                   onChange={(e) => handleChange('peering_lan.6', e.target.value)}
-                  placeholder="es: 2001:7f8:10::/48"
+                  placeholder="Esempio: 2001:7f8:10::/48"
                   required
                 />
               </Form.Group>
@@ -168,12 +183,12 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
             </Col>
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>Path</Form.Label>
+                <Form.Label>Config Path</Form.Label>
                 <Form.Control
                   type="text"
                   value={config.peering_configuration.path}
                   onChange={(e) => handleChange('peering_configuration.path', e.target.value)}
-                  placeholder="es: config_peerings.json"
+                  placeholder="Esempio: config_peerings.json, peerings.json"
                 />
               </Form.Group>
             </Col>
@@ -204,7 +219,7 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
                   type="text"
                   value={config.rib_dumps.dumps['4']}
                   onChange={(e) => handleChange('rib_dumps.dumps.4', e.target.value)}
-                  placeholder="es: rib_v4.dump"
+                  placeholder="Esempio: rib_v4.dump, dump_ipv4.dump"
                 />
               </Form.Group>
             </Col>
@@ -215,7 +230,7 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
                   type="text"
                   value={config.rib_dumps.dumps['6']}
                   onChange={(e) => handleChange('rib_dumps.dumps.6', e.target.value)}
-                  placeholder="es: rib_v6.dump"
+                  placeholder="Esempio: rib_v6.dump, dump_ipv6.dump"
                 />
               </Form.Group>
             </Col>
@@ -233,21 +248,28 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
         </Card.Header>
         <Card.Body>
           {Object.keys(config.route_servers).length === 0 ? (
-            <p className="text-muted">Nessun route server configurato. Aggiungi almeno uno.</p>
+            <div className="text-center p-3" style={{color: 'hsl(200, 50%, 60%)'}}>
+              <p className="mb-2">Nessun route server configurato.</p>
+              <p className="mb-0"><small>Clicca su "Aggiungi Route Server" per iniziare.</small></p>
+            </div>
           ) : (
-            <Accordion>
+            <Accordion defaultActiveKey="0">
               {Object.entries(config.route_servers).map(([rsKey, rsData], idx) => (
                 <Accordion.Item eventKey={idx.toString()} key={rsKey}>
-                  <Accordion.Header>{rsKey}</Accordion.Header>
+                  <Accordion.Header>
+                    <strong>{rsKey}</strong> 
+                    {rsData.name && <span className="ms-2 text-muted">({rsData.name})</span>}
+                  </Accordion.Header>
                   <Accordion.Body>
                     <Row>
                       <Col md={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>Name</Form.Label>
+                          <Form.Label>Name *</Form.Label>
                           <Form.Control
                             type="text"
                             value={rsData.name}
                             onChange={(e) => updateRouteServer(rsKey, 'name', e.target.value)}
+                            placeholder="Esempio: rs1_v4, rs2_v6"
                             required
                           />
                         </Form.Group>
@@ -269,22 +291,23 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
                     <Row>
                       <Col md={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>Image</Form.Label>
+                          <Form.Label>Docker Image</Form.Label>
                           <Form.Control
                             type="text"
                             value={rsData.image}
                             onChange={(e) => updateRouteServer(rsKey, 'image', e.target.value)}
-                            placeholder="es: kathara/openbgpd"
+                            placeholder="Esempio: kathara/openbgpd, kathara/bird"
                           />
                         </Form.Group>
                       </Col>
                       <Col md={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>AS Number</Form.Label>
+                          <Form.Label>AS Number *</Form.Label>
                           <Form.Control
                             type="number"
                             value={rsData.as_num}
                             onChange={(e) => updateRouteServer(rsKey, 'as_num', e.target.value)}
+                            placeholder="Esempio: 196959, 65000"
                             required
                           />
                         </Form.Group>
@@ -298,18 +321,19 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
                             type="text"
                             value={rsData.config}
                             onChange={(e) => updateRouteServer(rsKey, 'config', e.target.value)}
-                            placeholder="es: rs1-rom-v4.conf"
+                            placeholder="Esempio: rs1-rom-v4.conf, rs-config.conf"
                           />
                         </Form.Group>
                       </Col>
                       <Col md={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>Address (IP)</Form.Label>
+                          <Form.Label>IP Address *</Form.Label>
                           <Form.Control
                             type="text"
                             value={rsData.address}
                             onChange={(e) => updateRouteServer(rsKey, 'address', e.target.value)}
-                            placeholder="es: 193.201.28.60"
+                            placeholder="Esempio: 193.201.28.60, 2001:7f8:10::1"
+                            required
                           />
                         </Form.Group>
                       </Col>
@@ -319,7 +343,7 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
                       variant="danger" 
                       onClick={() => removeRouteServer(rsKey)}
                     >
-                      Rimuovi Route Server
+                      Rimuovi questo Route Server
                     </Button>
                   </Accordion.Body>
                 </Accordion.Item>
@@ -335,7 +359,7 @@ const ConfigForm = ({ initialData, onSave, onCancel }) => {
           Annulla
         </Button>
         <Button variant="primary" type="submit">
-          Salva Config
+          {isEditing ? 'Salva Modifiche' : 'Crea Config'}
         </Button>
       </div>
     </Form>
