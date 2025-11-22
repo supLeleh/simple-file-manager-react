@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Row, Col, Button, Card, Accordion } from 'react-bootstrap';
+import { Form, Row, Col, Button, Card, Accordion, Alert } from 'react-bootstrap';
 
 const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
   const getInitialConfig = () => {
@@ -10,7 +10,6 @@ const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
         console.error('Errore nel parsing del config:', e);
       }
     }
-    // Config vuoto per creazione nuovo file
     return {
       scenario_name: '',
       host_interface: null,
@@ -25,6 +24,8 @@ const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
   };
 
   const [config, setConfig] = useState(getInitialConfig());
+  const [errors, setErrors] = useState({});
+  const [showValidationError, setShowValidationError] = useState(false);
 
   useEffect(() => {
     if (isEditing && initialData) {
@@ -53,6 +54,15 @@ const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
       current[keys[keys.length - 1]] = value;
       return updated;
     });
+
+    // Rimuovi errore quando l'utente compila il campo
+    if (errors[path]) {
+      setErrors(prev => {
+        const updated = { ...prev };
+        delete updated[path];
+        return updated;
+      });
+    }
   };
 
   const addRouteServer = () => {
@@ -92,15 +102,83 @@ const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
         }
       }
     }));
+
+    // Rimuovi errore per questo campo
+    const errorKey = `route_servers.${rsKey}.${field}`;
+    if (errors[errorKey]) {
+      setErrors(prev => {
+        const updated = { ...prev };
+        delete updated[errorKey];
+        return updated;
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Valida scenario_name
+    if (!config.scenario_name || config.scenario_name.trim() === '') {
+      newErrors['scenario_name'] = true;
+    }
+
+    // Valida peering_lan
+    if (!config.peering_lan['4'] || config.peering_lan['4'].trim() === '') {
+      newErrors['peering_lan.4'] = true;
+    }
+    if (!config.peering_lan['6'] || config.peering_lan['6'].trim() === '') {
+      newErrors['peering_lan.6'] = true;
+    }
+
+    // Valida route_servers (almeno uno deve esserci)
+    if (Object.keys(config.route_servers).length === 0) {
+      newErrors['route_servers'] = 'Devi aggiungere almeno un Route Server';
+    } else {
+      // Valida ogni route server
+      Object.entries(config.route_servers).forEach(([rsKey, rsData]) => {
+        if (!rsData.name || rsData.name.trim() === '') {
+          newErrors[`route_servers.${rsKey}.name`] = true;
+        }
+        if (!rsData.as_num || rsData.as_num === 0) {
+          newErrors[`route_servers.${rsKey}.as_num`] = true;
+        }
+        if (!rsData.address || rsData.address.trim() === '') {
+          newErrors[`route_servers.${rsKey}.address`] = true;
+        }
+      });
+    }
+
+    return newErrors;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    const validationErrors = validateForm();
+    
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setShowValidationError(true);
+      // Scroll to top per mostrare l'alert
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setShowValidationError(false);
     onSave(JSON.stringify(config, null, 4));
   };
 
+  const hasError = (path) => errors.hasOwnProperty(path);
+
   return (
-    <Form onSubmit={handleSubmit}>
+    <Form onSubmit={handleSubmit} noValidate>
+      {showValidationError && (
+        <Alert variant="danger" onClose={() => setShowValidationError(false)} dismissible>
+          <Alert.Heading>Campi obbligatori mancanti</Alert.Heading>
+          <p>Compila tutti i campi evidenziati in rosso prima di salvare.</p>
+        </Alert>
+      )}
+
       {/* Sezione Basic Info */}
       <Card className="mb-3">
         <Card.Header><strong>Informazioni Base</strong></Card.Header>
@@ -112,7 +190,11 @@ const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
               value={config.scenario_name}
               onChange={(e) => handleChange('scenario_name', e.target.value)}
               placeholder="Esempio: namex_ixp, rome_ixp, milan_ixp"
-              required
+              isInvalid={hasError('scenario_name')}
+              style={hasError('scenario_name') ? {
+                borderColor: 'hsl(0, 100%, 40%)',
+                borderWidth: '2px'
+              } : {}}
             />
           </Form.Group>
 
@@ -138,25 +220,33 @@ const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
           <Row>
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>IPv4 Network</Form.Label>
+                <Form.Label>IPv4 Network *</Form.Label>
                 <Form.Control
                   type="text"
                   value={config.peering_lan['4']}
                   onChange={(e) => handleChange('peering_lan.4', e.target.value)}
                   placeholder="Esempio: 193.201.28.0/23"
-                  required
+                  isInvalid={hasError('peering_lan.4')}
+                  style={hasError('peering_lan.4') ? {
+                    borderColor: 'hsl(0, 100%, 40%)',
+                    borderWidth: '2px'
+                  } : {}}
                 />
               </Form.Group>
             </Col>
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>IPv6 Network</Form.Label>
+                <Form.Label>IPv6 Network *</Form.Label>
                 <Form.Control
                   type="text"
                   value={config.peering_lan['6']}
                   onChange={(e) => handleChange('peering_lan.6', e.target.value)}
                   placeholder="Esempio: 2001:7f8:10::/48"
-                  required
+                  isInvalid={hasError('peering_lan.6')}
+                  style={hasError('peering_lan.6') ? {
+                    borderColor: 'hsl(0, 100%, 40%)',
+                    borderWidth: '2px'
+                  } : {}}
                 />
               </Form.Group>
             </Col>
@@ -241,7 +331,14 @@ const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
       {/* Sezione Route Servers */}
       <Card className="mb-3">
         <Card.Header className="d-flex justify-content-between align-items-center">
-          <strong>Route Servers *</strong>
+          <div>
+            <strong>Route Servers *</strong>
+            {errors['route_servers'] && (
+              <span className="ms-2 text-danger" style={{ fontSize: '0.875rem' }}>
+                ({errors['route_servers']})
+              </span>
+            )}
+          </div>
           <Button size="sm" variant="success" onClick={addRouteServer}>
             + Aggiungi Route Server
           </Button>
@@ -270,7 +367,11 @@ const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
                             value={rsData.name}
                             onChange={(e) => updateRouteServer(rsKey, 'name', e.target.value)}
                             placeholder="Esempio: rs1_v4, rs2_v6"
-                            required
+                            isInvalid={hasError(`route_servers.${rsKey}.name`)}
+                            style={hasError(`route_servers.${rsKey}.name`) ? {
+                              borderColor: 'hsl(0, 100%, 40%)',
+                              borderWidth: '2px'
+                            } : {}}
                           />
                         </Form.Group>
                       </Col>
@@ -308,7 +409,11 @@ const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
                             value={rsData.as_num}
                             onChange={(e) => updateRouteServer(rsKey, 'as_num', e.target.value)}
                             placeholder="Esempio: 196959, 65000"
-                            required
+                            isInvalid={hasError(`route_servers.${rsKey}.as_num`)}
+                            style={hasError(`route_servers.${rsKey}.as_num`) ? {
+                              borderColor: 'hsl(0, 100%, 40%)',
+                              borderWidth: '2px'
+                            } : {}}
                           />
                         </Form.Group>
                       </Col>
@@ -333,7 +438,11 @@ const ConfigForm = ({ initialData, onSave, onCancel, isEditing = false }) => {
                             value={rsData.address}
                             onChange={(e) => updateRouteServer(rsKey, 'address', e.target.value)}
                             placeholder="Esempio: 193.201.28.60, 2001:7f8:10::1"
-                            required
+                            isInvalid={hasError(`route_servers.${rsKey}.address`)}
+                            style={hasError(`route_servers.${rsKey}.address`) ? {
+                              borderColor: 'hsl(0, 100%, 40%)',
+                              borderWidth: '2px'
+                            } : {}}
                           />
                         </Form.Group>
                       </Col>
