@@ -14,9 +14,11 @@ import traceback
 import docker
 from datetime import datetime
 
+
 router = APIRouter(
     prefix="/ixp",
     tags=["IXP Lab Execution"])
+
 
 def startup():
     found_lab_hash = discover_running_lab()
@@ -24,8 +26,7 @@ def startup():
     ServerContext.set_is_lab_discovered(True if lab is not None else None)
     ServerContext.set_lab(lab)
     ServerContext.set_total_machines(lab.machines if lab else None)
-    ServerContext.set_ixpconf_filename(None)  # even if lab is found, we don't know if we have the related ixp.conf,
-    # will have to be set via specific endpoint
+    ServerContext.set_ixpconf_filename(None)
 
     logging.info("IXP API Started")
     if ServerContext.get_is_lab_discovered():
@@ -101,8 +102,127 @@ async def execute_command_on_rs(rs_name: str, command: Annotated[str, Body()], r
     command_output = execute_command_on_machine(rs_name, command, ServerContext.get_lab())
     return success_2xx(message=command_output)
 
-import docker
-from datetime import datetime
+
+def calculate_cpu_percent(stats, machine_name):
+    """
+    Calcola la percentuale CPU in modo robusto con validazione e normalizzazione.
+    Ritorna un valore tra 0.0 e 100.0
+    """
+    try:
+        cpu_stats = stats.get('cpu_stats', {})
+        precpu_stats = stats.get('precpu_stats', {})
+        
+        cpu_usage = cpu_stats.get('cpu_usage', {})
+        precpu_usage = precpu_stats.get('cpu_usage', {})
+        
+        total_usage = cpu_usage.get('total_usage', 0)
+        precpu_total_usage = precpu_usage.get('total_usage', 0)
+        
+        system_cpu_usage = cpu_stats.get('system_cpu_usage', 0)
+        precpu_system_usage = precpu_stats.get('system_cpu_usage', 0)
+        
+        cpu_count = cpu_stats.get('online_cpus', 1)
+        
+        # Calcola delta
+        cpu_delta = total_usage - precpu_total_usage
+        system_delta = system_cpu_usage - precpu_system_usage
+        
+        # Validazione: delta deve essere positivo
+        if cpu_delta <= 0 or system_delta <= 0:
+            return 0.0
+        
+        # Calcola percentuale
+        cpu_percent = (cpu_delta / system_delta) * cpu_count * 100.0
+        
+        # Validazione: non può superare 100% per core
+        max_cpu = 100.0 * cpu_count
+        if cpu_percent > max_cpu:
+            logging.warning(f"CPU {cpu_percent:.2f}% exceeds max {max_cpu:.2f}% for {machine_name}, capping to 100%")
+            cpu_percent = 100.0
+        elif cpu_percent < 0:
+            logging.warning(f"CPU {cpu_percent:.2f}% is negative for {machine_name}, setting to 0%")
+            cpu_percent = 0.0
+        else:
+            # Normalizza per singolo core (opzionale, dipende da come vuoi mostrare)
+            # Se vuoi mostrare % totale su tutti i core, commenta questa riga
+            cpu_percent = min(cpu_percent / cpu_count, 100.0)
+        
+        return round(cpu_percent, 2)
+        
+    except (KeyError, ZeroDivisionError, TypeError) as e:
+        logging.warning(f"Error calculating CPU for {machine_name}: {e}")
+        return 0.0
+
+
+def calculate_memory_stats(stats, machine_name):
+    """
+    Calcola statistiche memoria con validazione
+    """
+    try:
+        memory_stats = stats.get('memory_stats', {})
+        mem_usage = memory_stats.get('usage', 0)
+        mem_limit = memory_stats.get('limit', 1)
+        
+        # Validazione
+        if mem_usage < 0:
+            mem_usage = 0
+        if mem_limit <= 0:
+            mem_limit = 1
+        
+        usage_mb = round(mem_usage / (1024 * 1024), 2)
+        limit_mb = round(mem_limit / (1024 * 1024), 2)
+        percent = round((mem_usage / mem_limit) * 100, 2) if mem_limit > 0 else 0.0
+        
+        # Limita tra 0 e 100
+        percent = min(max(percent, 0.0), 100.0)
+        
+        return usage_mb, limit_mb, percent
+        
+    except (KeyError, ZeroDivisionError, TypeError) as e:
+        logging.warning(f"Error calculating memory for {machine_name}: {e}")
+        return 0.0, 0.0, 0.0
+
+
+def calculate_network_stats(stats, machine_name):
+    """
+    Calcola statistiche di rete
+    """
+    try:
+        networks = stats.get('networks', {})
+        total_rx = sum(net.get('rx_bytes', 0) for net in networks.values())
+        total_tx = sum(net.get('tx_bytes', 0) for net in networks.values())
+        
+        rx_mb = round(max(total_rx, 0) / (1024 * 1024), 2)
+        tx_mb = round(max(total_tx, 0) / (1024 * 1024), 2)
+        
+        return rx_mb, tx_mb
+        
+    except (KeyError, AttributeError, TypeError) as e:
+        logging.warning(f"Error calculating network for {machine_name}: {e}")
+        return 0.0, 0.0
+
+
+def calculate_uptime(container, machine_name):
+    """
+    Calcola uptime del container
+    """
+    try:
+        started_at = container.attrs['State']['StartedAt']
+        if started_at:
+            start_time = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+            uptime_seconds = (datetime.now(start_time.tzinfo) - start_time).total_seconds()
+            
+            if uptime_seconds < 0:
+                return "N/A"
+            
+            hours = int(uptime_seconds // 3600)
+            minutes = int((uptime_seconds % 3600) // 60)
+            return f"{hours}h {minutes}m"
+        return "N/A"
+    except (KeyError, ValueError, TypeError) as e:
+        logging.warning(f"Error calculating uptime for {machine_name}: {e}")
+        return "N/A"
+
 
 @router.get("/devices", status_code=status.HTTP_200_OK)
 async def get_lab_devices(response: Response):
@@ -113,10 +233,8 @@ async def get_lab_devices(response: Response):
     devices_info = []
     
     try:
-        # Connessione a Docker per ottenere stats
+        # Connessione a Docker
         docker_client = docker.from_env()
-        
-        # Lista tutti i container attivi
         all_containers = docker_client.containers.list()
         logging.info(f"Found {len(all_containers)} running containers")
         
@@ -136,38 +254,35 @@ async def get_lab_devices(response: Response):
             }
             
             try:
-                # Prova diverse naming convention di Kathara
+                # Cerca container con diverse naming convention
                 possible_names = [
-                    f"{lab.hash}_{machine_name}",  # Standard
-                    f"{lab.hash}-{machine_name}",  # Con trattino
-                    machine_name,                   # Solo nome
-                    f"kathara_{lab.hash}_{machine_name}",  # Con prefisso kathara
+                    f"{lab.hash}_{machine_name}",
+                    f"{lab.hash}-{machine_name}",
+                    machine_name,
+                    f"kathara_{lab.hash}_{machine_name}",
                 ]
                 
                 container = None
-                container_name_found = None
                 
-                # Cerca il container con diversi pattern
+                # Cerca per nome esatto
                 for possible_name in possible_names:
                     try:
                         container = docker_client.containers.get(possible_name)
-                        container_name_found = possible_name
                         logging.info(f"Found container {possible_name} for device {machine_name}")
                         break
                     except docker.errors.NotFound:
                         continue
                 
-                # Se non trovato con get, cerca per nome nei container attivi
+                # Cerca per match parziale
                 if not container:
                     for c in all_containers:
-                        if machine_name in c.name or lab.hash in c.name:
+                        if machine_name in c.name and lab.hash in c.name:
                             container = c
-                            container_name_found = c.name
                             logging.info(f"Found container {c.name} by search for device {machine_name}")
                             break
                 
                 if not container:
-                    logging.warning(f"Container not found for device {machine_name}. Tried: {possible_names}")
+                    logging.warning(f"Container not found for device {machine_name}")
                     device_stats["status"] = "not_found"
                     devices_info.append(device_stats)
                     continue
@@ -175,59 +290,27 @@ async def get_lab_devices(response: Response):
                 # Stato container
                 device_stats["status"] = container.status
                 
-                # Se container non è running, skip stats
+                # Se non running, skip stats
                 if container.status != 'running':
                     devices_info.append(device_stats)
                     continue
                 
-                # Stats in tempo reale
+                # Ottieni stats
                 stats = container.stats(stream=False)
                 
-                # Calcola CPU %
-                try:
-                    cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - \
-                               stats['precpu_stats']['cpu_usage']['total_usage']
-                    system_delta = stats['cpu_stats']['system_cpu_usage'] - \
-                                  stats['precpu_stats']['system_cpu_usage']
-                    cpu_count = stats['cpu_stats'].get('online_cpus', 1)
-                    
-                    if system_delta > 0 and cpu_delta > 0:
-                        cpu_percent = (cpu_delta / system_delta) * cpu_count * 100.0
-                        device_stats["cpu_percent"] = round(cpu_percent, 2)
-                except (KeyError, ZeroDivisionError) as e:
-                    logging.warning(f"Error calculating CPU for {machine_name}: {e}")
+                # Calcola metriche con funzioni dedicate
+                device_stats["cpu_percent"] = calculate_cpu_percent(stats, machine_name)
                 
-                # Memoria
-                try:
-                    mem_usage = stats['memory_stats'].get('usage', 0)
-                    mem_limit = stats['memory_stats'].get('limit', 1)
-                    device_stats["memory_usage_mb"] = round(mem_usage / (1024 * 1024), 2)
-                    device_stats["memory_limit_mb"] = round(mem_limit / (1024 * 1024), 2)
-                    device_stats["memory_percent"] = round((mem_usage / mem_limit) * 100, 2) if mem_limit > 0 else 0
-                except (KeyError, ZeroDivisionError) as e:
-                    logging.warning(f"Error calculating memory for {machine_name}: {e}")
+                mem_usage, mem_limit, mem_percent = calculate_memory_stats(stats, machine_name)
+                device_stats["memory_usage_mb"] = mem_usage
+                device_stats["memory_limit_mb"] = mem_limit
+                device_stats["memory_percent"] = mem_percent
                 
-                # Network stats
-                try:
-                    networks = stats.get('networks', {})
-                    total_rx = sum(net.get('rx_bytes', 0) for net in networks.values())
-                    total_tx = sum(net.get('tx_bytes', 0) for net in networks.values())
-                    device_stats["network_rx_mb"] = round(total_rx / (1024 * 1024), 2)
-                    device_stats["network_tx_mb"] = round(total_tx / (1024 * 1024), 2)
-                except (KeyError, AttributeError) as e:
-                    logging.warning(f"Error calculating network for {machine_name}: {e}")
+                rx_mb, tx_mb = calculate_network_stats(stats, machine_name)
+                device_stats["network_rx_mb"] = rx_mb
+                device_stats["network_tx_mb"] = tx_mb
                 
-                # Uptime
-                try:
-                    started_at = container.attrs['State']['StartedAt']
-                    if started_at:
-                        start_time = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
-                        uptime_seconds = (datetime.now(start_time.tzinfo) - start_time).total_seconds()
-                        hours = int(uptime_seconds // 3600)
-                        minutes = int((uptime_seconds % 3600) // 60)
-                        device_stats["uptime"] = f"{hours}h {minutes}m"
-                except (KeyError, ValueError) as e:
-                    logging.warning(f"Error calculating uptime for {machine_name}: {e}")
+                device_stats["uptime"] = calculate_uptime(container, machine_name)
                 
             except Exception as e:
                 logging.error(f"Error getting stats for {machine_name}: {e}")
@@ -237,10 +320,7 @@ async def get_lab_devices(response: Response):
         
     except Exception as e:
         logging.error(f"Error connecting to Docker: {e}")
-        import traceback
         logging.error(traceback.format_exc())
         return error_5xx(response, message=f"Error retrieving device stats: {str(e)}")
     
     return success_2xx(key_mess="devices", message=devices_info)
-
-

@@ -1,109 +1,77 @@
-INFO | 2025-11-23 20:09:42+0100 : Content of 'C:\Users\lele1\Documents\Kathara\simple-file-manager-react\simple-file-manager-react\backend\logs\namex.log' has been reset.
-INFO | 2025-11-23 20:09:42+0100 : Building lab..
-INFO | 2025-11-23 20:09:42+0100 : Loading Dump in `C:\Users\lele1\Documents\Kathara\simple-file-manager-react\simple-file-manager-react\backend\resources\rib_v4.dump`...
-INFO | 2025-11-23 20:09:42+0100 : Loading Dump in `C:\Users\lele1\Documents\Kathara\simple-file-manager-react\simple-file-manager-react\backend\resources\rib_v6.dump`...
-INFO | 2025-11-23 20:09:43+0100 : Creating Kathara network scenario...
-SUCCESS | 2025-11-23 20:09:43+0100 : Device `as42_0` created.
-SUCCESS | 2025-11-23 20:09:43+0100 : Device `as112_0` created.
-INFO | 2025-11-23 20:09:43+0100 : Skipping device `as112_1` because it has no routes
-SUCCESS | 2025-11-23 20:09:43+0100 : Device `as137_0` created.
-SUCCESS | 2025-11-23 20:09:43+0100 : Device `as1267_0` created.
-INFO | 2025-11-23 20:09:43+0100 : Skipping device `as1299_0` because it has no routes
-INFO | 2025-11-23 20:09:43+0100 : Configuring FRR BGP in device `as42_0`...
-INFO | 2025-11-23 20:09:43+0100 : Configuring FRR BGP in device `as112_0`...
-INFO | 2025-11-23 20:09:43+0100 : Configuring FRR BGP in device `as137_0`...
-INFO | 2025-11-23 20:09:43+0100 : Configuring FRR BGP in device `as1267_0`...
-INFO | 2025-11-23 20:09:43+0100 : Configuring OpenBGPD in device `rs1_v4`...
-SUCCESS | 2025-11-23 20:09:44+0100 : Device `rs1_v4` created.
-INFO | 2025-11-23 20:09:44+0100 : Configuring OpenBGPD in device `rs1_v6`...
-SUCCESS | 2025-11-23 20:09:44+0100 : Device `rs1_v6` created.
-WARNING | 2025-11-23 20:09:44+0100 : No host interface specified! It is not possible to connect external peers!
-INFO | 2025-11-23 20:09:44+0100 : Lab build, hash: iQnk9KyBDBJPmZROLT6Tw
-INFO | 2025-11-23 20:09:44+0100 : Deploying lab..
-INFO | 2025-11-23 20:09:44+0100 : Undeploying network scenario...
-SUCCESS | 2025-11-23 20:09:44+0100 : Network scenario undeployed!
-INFO | 2025-11-23 20:09:44+0100 : Deploying network scenario...
-INFO | 2025-11-23 20:09:45+0100 : Found 0 running containers
-WARNING | 2025-11-23 20:09:45+0100 : Container not found for device as42_0. Tried: ['iQnk9KyBDBJPmZROLT6Tw_as42_0', 'iQnk9KyBDBJPmZROLT6Tw-as42_0', 'as42_0', 'kathara_iQnk9KyBDBJPmZROLT6Tw_as42_0']
-WARNING | 2025-11-23 20:09:45+0100 : Container not found for device as112_0. Tried: ['iQnk9KyBDBJPmZROLT6Tw_as112_0', 'iQnk9KyBDBJPmZROLT6Tw-as112_0', 'as112_0', 'kathara_iQnk9KyBDBJPmZROLT6Tw_as112_0']
-WARNING | 2025-11-23 20:09:45+0100 : Container not found for device as137_0. Tried: ['iQnk9KyBDBJPmZROLT6Tw_as137_0', 'iQnk9KyBDBJPmZROLT6Tw-as137_0', 'as137_0', 'kathara_iQnk9KyBDBJPmZROLT6Tw_as137_0']
-WARNING | 2025-11-23 20:09:45+0100 : Container not found for device as1267_0. Tried: ['iQnk9KyBDBJPmZROLT6Tw_as1267_0', 'iQnk9KyBDBJPmZROLT6Tw-as1267_0', 'as1267_0', 'kathara_iQnk9KyBDBJPmZROLT6Tw_as1267_0']
-WARNING | 2025-11-23 20:09:45+0100 : Container not found for device rs1_v4. Tried: ['iQnk9KyBDBJPmZROLT6Tw_rs1_v4', 'iQnk9KyBDBJPmZROLT6Tw-rs1_v4', 'rs1_v4', 'kathara_iQnk9KyBDBJPmZROLT6Tw_rs1_v4']
-WARNING | 2025-11-23 20:09:45+0100 : Container not found for device rs1_v6. Tried: ['iQnk9KyBDBJPmZROLT6Tw_rs1_v6', 'iQnk9KyBDBJPmZROLT6Tw-rs1_v6', 'rs1_v6', 'kathara_iQnk9KyBDBJPmZROLT6Tw_rs1_v6']
-WARNING | 2025-11-23 20:09:45+0100 : Container not found for device switch. Tried: ['iQnk9KyBDBJPmZROLT6Tw_switch', 'iQnk9KyBDBJPmZROLT6Tw-switch', 'switch', 'kathara_iQnk9KyBDBJPmZROLT6Tw_switch']
-INFO | 2025-11-23 20:09:50+0100 : Found 0 running containers
-WARNING | 2025-11-23 20:09:50+0100 : Container not found for device as42_0. Tried: ['iQnk9KyBDBJPmZROLT6Tw_as42_0', 'iQnk9KyBDBJPmZROLT6Tw-as42_0', 'as42_0', 'kathara_iQnk9KyBDBJPmZROLT6Tw_as42_0']
-WARNING | 2025-11-23 20:09:50+0100 : Container not found for device as112_0. Tried: ['iQnk9KyBDBJPmZROLT6Tw_as112_0', 'iQnk9KyBDBJPmZROLT6Tw-as112_0', 'as112_0', 'kathara_iQnk9KyBDBJPmZROLT6Tw_as112_0']
-WARNING | 2025-11-23 20:09:50+0100 : Container not found for device as137_0. Tried: ['iQnk9KyBDBJPmZROLT6Tw_as137_0', 'iQnk9KyBDBJPmZROLT6Tw-as137_0', 'as137_0', 'kathara_iQnk9KyBDBJPmZROLT6Tw_as137_0']
-WARNING | 2025-11-23 20:09:50+0100 : Container not found for device as1267_0. Tried: ['iQnk9KyBDBJPmZROLT6Tw_as1267_0', 'iQnk9KyBDBJPmZROLT6Tw-as1267_0', 'as1267_0', 'kathara_iQnk9KyBDBJPmZROLT6Tw_as1267_0']
-WARNING | 2025-11-23 20:09:50+0100 : Container not found for device rs1_v4. Tried: ['iQnk9KyBDBJPmZROLT6Tw_rs1_v4', 'iQnk9KyBDBJPmZROLT6Tw-rs1_v4', 'rs1_v4', 'kathara_iQnk9KyBDBJPmZROLT6Tw_rs1_v4']
-WARNING | 2025-11-23 20:09:50+0100 : Container not found for device rs1_v6. Tried: ['iQnk9KyBDBJPmZROLT6Tw_rs1_v6', 'iQnk9KyBDBJPmZROLT6Tw-rs1_v6', 'rs1_v6', 'kathara_iQnk9KyBDBJPmZROLT6Tw_rs1_v6']
-WARNING | 2025-11-23 20:09:50+0100 : Container not found for device switch. Tried: ['iQnk9KyBDBJPmZROLT6Tw_switch', 'iQnk9KyBDBJPmZROLT6Tw-switch', 'switch', 'kathara_iQnk9KyBDBJPmZROLT6Tw_switch']
-INFO | 2025-11-23 20:09:55+0100 : Found 1 running containers
-INFO | 2025-11-23 20:09:55+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
-INFO | 2025-11-23 20:09:56+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
-INFO | 2025-11-23 20:09:58+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
-INFO | 2025-11-23 20:10:00+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
-INFO | 2025-11-23 20:10:02+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
-INFO | 2025-11-23 20:10:04+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
-INFO | 2025-11-23 20:10:06+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device switch
-INFO | 2025-11-23 20:10:09+0100 : Found 2 running containers
-INFO | 2025-11-23 20:10:09+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
-INFO | 2025-11-23 20:10:09+0100 : Deployed devices: 3/7
-INFO | 2025-11-23 20:10:10+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
-INFO | 2025-11-23 20:10:12+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
-INFO | 2025-11-23 20:10:14+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
-INFO | 2025-11-23 20:10:16+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
-INFO | 2025-11-23 20:10:19+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
-INFO | 2025-11-23 20:10:20+0100 : Deployed devices: 7/7
-SUCCESS | 2025-11-23 20:10:20+0100 : Network scenario deployed!
-INFO | 2025-11-23 20:10:20+0100 : Deploy lab complete
-INFO | 2025-11-23 20:10:21+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device switch
-INFO | 2025-11-23 20:10:23+0100 : Found 7 running containers
-INFO | 2025-11-23 20:10:23+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
-INFO | 2025-11-23 20:10:25+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
-INFO | 2025-11-23 20:10:27+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
-INFO | 2025-11-23 20:10:29+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
-INFO | 2025-11-23 20:10:31+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
-INFO | 2025-11-23 20:10:33+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
-INFO | 2025-11-23 20:10:35+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device switch
-INFO | 2025-11-23 20:10:37+0100 : Found 7 running containers
-INFO | 2025-11-23 20:10:37+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
-INFO | 2025-11-23 20:10:39+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
-INFO | 2025-11-23 20:10:41+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
-INFO | 2025-11-23 20:10:43+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
-INFO | 2025-11-23 20:10:45+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
-INFO | 2025-11-23 20:10:47+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
-INFO | 2025-11-23 20:10:49+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device switch
-INFO | 2025-11-23 20:10:51+0100 : Found 7 running containers
-INFO | 2025-11-23 20:10:51+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
-INFO | 2025-11-23 20:10:53+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
-INFO | 2025-11-23 20:10:55+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
-INFO | 2025-11-23 20:10:57+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
-INFO | 2025-11-23 20:10:59+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
-INFO | 2025-11-23 20:11:01+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
-INFO | 2025-11-23 20:11:03+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device switch
-INFO | 2025-11-23 20:11:06+0100 : Found 7 running containers
-INFO | 2025-11-23 20:11:06+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
-INFO | 2025-11-23 20:11:07+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
-INFO | 2025-11-23 20:11:09+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
-INFO | 2025-11-23 20:11:11+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
-INFO | 2025-11-23 20:11:13+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
-INFO | 2025-11-23 20:11:15+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
-INFO | 2025-11-23 20:11:17+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device switch
-INFO | 2025-11-23 20:11:20+0100 : Found 7 running containers
-INFO | 2025-11-23 20:11:20+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
-INFO | 2025-11-23 20:11:21+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
-INFO | 2025-11-23 20:11:23+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
-INFO | 2025-11-23 20:11:25+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
-INFO | 2025-11-23 20:11:28+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
-INFO | 2025-11-23 20:11:30+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
-INFO | 2025-11-23 20:11:32+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device switch
-INFO | 2025-11-23 20:11:34+0100 : Found 7 running containers
-INFO | 2025-11-23 20:11:34+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
-INFO | 2025-11-23 20:11:36+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
-INFO | 2025-11-23 20:11:38+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
-INFO | 2025-11-23 20:11:40+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
-INFO | 2025-11-23 20:11:42+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
-INFO | 2025-11-23 20:11:44+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
-INFO | 2025-11-23 20:11:46+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device switch
+INFO | 2025-11-23 20:32:25+0100 : Content of 'C:\Users\lele1\Documents\Kathara\simple-file-manager-react\simple-file-manager-react\backend\logs\namex.log' has been reset.
+INFO | 2025-11-23 20:32:25+0100 : Building lab..
+INFO | 2025-11-23 20:32:25+0100 : Loading Dump in `C:\Users\lele1\Documents\Kathara\simple-file-manager-react\simple-file-manager-react\backend\resources\rib_v4.dump`...
+INFO | 2025-11-23 20:32:26+0100 : Loading Dump in `C:\Users\lele1\Documents\Kathara\simple-file-manager-react\simple-file-manager-react\backend\resources\rib_v6.dump`...
+INFO | 2025-11-23 20:32:27+0100 : Creating Kathara network scenario...
+SUCCESS | 2025-11-23 20:32:27+0100 : Device `as42_0` created.
+SUCCESS | 2025-11-23 20:32:27+0100 : Device `as112_0` created.
+INFO | 2025-11-23 20:32:27+0100 : Skipping device `as112_1` because it has no routes
+SUCCESS | 2025-11-23 20:32:27+0100 : Device `as137_0` created.
+SUCCESS | 2025-11-23 20:32:27+0100 : Device `as1267_0` created.
+INFO | 2025-11-23 20:32:27+0100 : Skipping device `as1299_0` because it has no routes
+INFO | 2025-11-23 20:32:27+0100 : Configuring FRR BGP in device `as42_0`...
+INFO | 2025-11-23 20:32:27+0100 : Configuring FRR BGP in device `as112_0`...
+INFO | 2025-11-23 20:32:27+0100 : Configuring FRR BGP in device `as137_0`...
+INFO | 2025-11-23 20:32:27+0100 : Configuring FRR BGP in device `as1267_0`...
+INFO | 2025-11-23 20:32:27+0100 : Configuring OpenBGPD in device `rs1_v4`...
+SUCCESS | 2025-11-23 20:32:27+0100 : Device `rs1_v4` created.
+INFO | 2025-11-23 20:32:27+0100 : Configuring OpenBGPD in device `rs1_v6`...
+SUCCESS | 2025-11-23 20:32:27+0100 : Device `rs1_v6` created.
+WARNING | 2025-11-23 20:32:27+0100 : No host interface specified! It is not possible to connect external peers!
+INFO | 2025-11-23 20:32:27+0100 : Lab build, hash: iQnk9KyBDBJPmZROLT6Tw
+INFO | 2025-11-23 20:32:27+0100 : Deploying lab..
+INFO | 2025-11-23 20:32:27+0100 : Undeploying network scenario...
+SUCCESS | 2025-11-23 20:32:27+0100 : Network scenario undeployed!
+INFO | 2025-11-23 20:32:27+0100 : Deploying network scenario...
+INFO | 2025-11-23 20:32:49+0100 : Deployed devices: 3/7
+INFO | 2025-11-23 20:32:55+0100 : Deployed devices: 7/7
+SUCCESS | 2025-11-23 20:32:55+0100 : Network scenario deployed!
+INFO | 2025-11-23 20:32:55+0100 : Deploy lab complete
+INFO | 2025-11-23 20:34:11+0100 : Found 7 running containers
+INFO | 2025-11-23 20:34:11+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as42_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
+INFO | 2025-11-23 20:34:12+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
+INFO | 2025-11-23 20:34:14+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as137_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
+INFO | 2025-11-23 20:34:16+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as1267_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
+INFO | 2025-11-23 20:34:18+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v4_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
+INFO | 2025-11-23 20:34:20+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v6_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
+INFO | 2025-11-23 20:34:22+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device switch
+INFO | 2025-11-23 20:34:24+0100 : Found 7 running containers
+INFO | 2025-11-23 20:34:24+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as42_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
+INFO | 2025-11-23 20:34:26+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
+INFO | 2025-11-23 20:34:28+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as137_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
+INFO | 2025-11-23 20:34:30+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as1267_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
+INFO | 2025-11-23 20:34:32+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v4_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
+INFO | 2025-11-23 20:34:34+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v6_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
+INFO | 2025-11-23 20:34:36+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device switch
+INFO | 2025-11-23 20:34:38+0100 : Found 7 running containers
+INFO | 2025-11-23 20:34:38+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as42_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
+INFO | 2025-11-23 20:34:40+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
+INFO | 2025-11-23 20:34:42+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as137_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
+INFO | 2025-11-23 20:34:44+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as1267_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
+INFO | 2025-11-23 20:34:46+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v4_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
+INFO | 2025-11-23 20:34:48+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v6_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
+INFO | 2025-11-23 20:34:50+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device switch
+INFO | 2025-11-23 20:34:53+0100 : Found 7 running containers
+INFO | 2025-11-23 20:34:53+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as42_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
+INFO | 2025-11-23 20:34:54+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
+INFO | 2025-11-23 20:34:56+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as137_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
+INFO | 2025-11-23 20:34:58+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as1267_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
+INFO | 2025-11-23 20:35:00+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v4_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
+INFO | 2025-11-23 20:35:02+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v6_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
+INFO | 2025-11-23 20:35:04+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device switch
+INFO | 2025-11-23 20:35:07+0100 : Found 7 running containers
+INFO | 2025-11-23 20:35:07+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as42_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
+INFO | 2025-11-23 20:35:08+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
+INFO | 2025-11-23 20:35:10+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as137_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
+INFO | 2025-11-23 20:35:12+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as1267_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
+INFO | 2025-11-23 20:35:14+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v4_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
+INFO | 2025-11-23 20:35:16+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v6_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
+INFO | 2025-11-23 20:35:19+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device switch
+INFO | 2025-11-23 20:36:03+0100 : Found 7 running containers
+INFO | 2025-11-23 20:36:03+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as42_0_iQnk9KyBDBJPmZROLT6Tw by search for device as42_0
+INFO | 2025-11-23 20:36:04+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as112_0_iQnk9KyBDBJPmZROLT6Tw by search for device as112_0
+INFO | 2025-11-23 20:36:06+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as137_0_iQnk9KyBDBJPmZROLT6Tw by search for device as137_0
+INFO | 2025-11-23 20:36:08+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_as1267_0_iQnk9KyBDBJPmZROLT6Tw by search for device as1267_0
+INFO | 2025-11-23 20:36:10+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v4_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v4
+INFO | 2025-11-23 20:36:12+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_rs1_v6_iQnk9KyBDBJPmZROLT6Tw by search for device rs1_v6
+INFO | 2025-11-23 20:36:14+0100 : Found container kathara_lele1-biiszkydq3tetmptpltlq_switch_iQnk9KyBDBJPmZROLT6Tw by search for device switch
