@@ -39,22 +39,49 @@ def startup():
 @router.post("/start", status_code=status.HTTP_201_CREATED)
 async def run_namex_lab(ixp_file: ConfigFileModel, response: Response):
     try:
+        logging.info(f"=== START LAB REQUEST ===")
+        logging.info(f"Received filename: {ixp_file.filename}")
+        
+        # IMPORTANTE: Wipe completo del lab precedente se esiste
+        if ServerContext.get_lab():
+            logging.info("Previous lab detected, wiping...")
+            try:
+                Kathara.get_instance().wipe()
+                logging.info("Previous lab wiped successfully")
+            except Exception as e:
+                logging.warning(f"Error wiping previous lab: {e}")
+        
+        # Pulisci completamente il ServerContext
+        ServerContext.set_lab(None)
+        ServerContext.set_is_lab_discovered(None)
+        ServerContext.set_ixpconf_filename(None)
+        ServerContext.set_total_machines(None)
+        
+        logging.info(f"Building new lab with config: {ixp_file.filename}")
+        
+        # Costruisci il nuovo lab
         lab, net_scenario_manager = build_lab(ixp_file.filename)
+        
         ServerContext.set_total_machines(lab.machines)
         ServerContext.set_lab(lab)
         ServerContext.set_is_lab_discovered(False)
         ServerContext.set_ixpconf_filename(ixp_file.filename)
 
-        # Starting lab on different thread, to not impact response
+        logging.info(f"Lab built successfully. Hash: {lab.hash}")
+        logging.info(f"Machines in lab: {list(lab.machines.keys())}")
+        logging.info(f"=========================")
+
+        # Starting lab on different thread
         Thread(
             target=start_lab,
             args=(net_scenario_manager,)).start()
 
         return success_2xx(key_mess="lab_hash", message=ServerContext.get_lab().hash)
+        
     except Exception as e:
         logging.error(f"Error starting the Lab: {e}")
-        logging.error(traceback.print_exc())
-        return error_4xx(response, message="couldn't start lab")
+        logging.error(traceback.format_exc())
+        return error_4xx(response, message=f"couldn't start lab: {str(e)}")
 
 
 @router.get("/running", status_code=status.HTTP_200_OK)
