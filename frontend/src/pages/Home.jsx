@@ -79,7 +79,7 @@ const Home = () => {
     useEffect(() => {
         fetchConfigFiles();
         fetchLabStatus();
-        pollingRef.current = setInterval(fetchLabStatus, 5000);
+        pollingRef.current = setInterval(fetchLabStatus, 10000); // Da 5s a 10s
 
         return () => {
             if (pollingRef.current) {
@@ -96,7 +96,7 @@ const Home = () => {
 
         if (labStatus === 'running' && statsPollingEnabled) {
             fetchDevices();
-            statsPollingRef.current = setInterval(fetchDevices, 5000);
+            statsPollingRef.current = setInterval(fetchDevices, 10000); // Da 5s a 10s
         }
 
         return () => {
@@ -106,6 +106,7 @@ const Home = () => {
             }
         };
     }, [labStatus, statsPollingEnabled]);
+
 
     const handleStart = async () => {
         try {
@@ -182,9 +183,12 @@ const Home = () => {
         setCommandError('');
         setCommandOutput('Executing command...');
 
-        // Timeout controller
+        // Disabilita temporaneamente il polling
+        const wasPollingEnabled = statsPollingEnabled;
+        setStatsPollingEnabled(false);
+
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 secondi
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
 
         try {
             const res = await fetch(`${API_BASE}/execute_command/${encodeURIComponent(selectedDevice)}`, {
@@ -212,16 +216,21 @@ const Home = () => {
             clearTimeout(timeoutId);
 
             if (error.name === 'AbortError') {
-                setCommandError('Command execution timed out (60s limit). The command may still be running.');
-                setCommandOutput('Operation timeout. Try simpler commands or check backend logs.');
+                setCommandError('Command execution timed out (60s limit)');
+                setCommandOutput('Operation timeout. Check backend logs.');
             } else {
                 console.error('Error executing command:', error);
                 setCommandError(`Error: ${error.message}`);
             }
         } finally {
             setCommandLoading(false);
+            // Riabilita il polling dopo 2 secondi
+            setTimeout(() => {
+                setStatsPollingEnabled(wasPollingEnabled);
+            }, 2000);
         }
     };
+
 
 
     // ==================== END RUN COMMAND ====================

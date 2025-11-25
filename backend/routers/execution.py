@@ -1,6 +1,8 @@
 import logging
 from typing import Annotated
 from threading import Thread
+
+from fastapi.responses import JSONResponse
 from utils.responses import *
 from Kathara.manager.Kathara import Kathara
 from fastapi import APIRouter, status, Response, Body
@@ -17,7 +19,12 @@ from utils.server_context import ServerContext
 import traceback
 import docker
 from datetime import datetime
-
+from cache_manager import get_stats_cache
+from utils.docker_utils import (
+    get_docker_client,
+    get_all_running_containers,
+    find_container_by_name,
+)
 
 router = APIRouter(prefix="/ixp", tags=["IXP Lab Execution"])
 
@@ -47,6 +54,10 @@ def startup():
 @router.post("/start", status_code=status.HTTP_201_CREATED)
 async def run_namex_lab(ixp_file: ConfigFileModel, response: Response):
     try:
+
+        # Pulisci la cache
+        get_stats_cache().clear()
+
         logging.info(f"=== START LAB REQUEST ===")
         logging.info(f"Received filename: {ixp_file.filename}")
 
@@ -107,6 +118,9 @@ async def get_namex_running_instance(response: Response):
 async def wipe_namex_lab(response: Response):
     try:
         logging.info("Starting lab wipe...")
+
+        # Pulisci la cache
+        get_stats_cache().clear()
 
         if not ServerContext.get_lab():
             logging.warning("No lab to wipe")
@@ -328,11 +342,23 @@ async def get_lab_devices(response: Response):
         return error_4xx(response, status.HTTP_404_NOT_FOUND, message="no lab running")
 
     lab = ServerContext.get_lab()
+
+    # Prova a usare la cache (5 secondi TTL)
+    cache_key = f"devices_{lab.hash}"
+    from routers.infos import _stats_cache
+
+    cached_data = _stats_cache.get(cache_key)
+
+    if cached_data is not None:
+        return JSONResponse(content={"devices": cached_data})
+
     devices_info = []
 
     try:
-        # Connessione a Docker
-        docker_client = docker.from_env()
+        # Usa il docker client singleton e ottieni tutti i container una volta sola
+        from routers.infos import get_docker_client
+
+        docker_client = get_docker_client()
         all_containers = docker_client.containers.list()
         logging.info(f"Found {len(all_containers)} running containers")
 
@@ -354,36 +380,34 @@ async def get_lab_devices(response: Response):
             }
 
             try:
-                # Cerca container con diverse naming convention
-                possible_names = [
-                    f"{lab.hash}_{machine_name}",
-                    f"{lab.hash}-{machine_name}",
-                    machine_name,
-                    f"kathara_{lab.hash}_{machine_name}",
-                ]
-
+                # Cerca container - prima nella lista già caricata (veloce)
                 container = None
 
-                # Cerca per nome esatto
-                for possible_name in possible_names:
-                    try:
-                        container = docker_client.containers.get(possible_name)
+                for c in all_containers:
+                    if machine_name in c.name and lab.hash in c.name:
+                        container = c
                         logging.info(
-                            f"Found container {possible_name} for device {machine_name}"
+                            f"Found container {c.name} by search for device {machine_name}"
                         )
                         break
-                    except docker.errors.NotFound:
-                        continue
 
-                # Cerca per match parziale
+                # Fallback: cerca per nome esatto (raro)
                 if not container:
-                    for c in all_containers:
-                        if machine_name in c.name and lab.hash in c.name:
-                            container = c
+                    possible_names = [
+                        f"{lab.hash}_{machine_name}",
+                        f"{lab.hash}-{machine_name}",
+                        f"kathara_{lab.hash}_{machine_name}",
+                    ]
+
+                    for possible_name in possible_names:
+                        try:
+                            container = docker_client.containers.get(possible_name)
                             logging.info(
-                                f"Found container {c.name} by search for device {machine_name}"
+                                f"Found container {possible_name} for device {machine_name}"
                             )
                             break
+                        except docker.errors.NotFound:
+                            continue
 
                 if not container:
                     logging.warning(f"Container not found for device {machine_name}")
@@ -399,7 +423,7 @@ async def get_lab_devices(response: Response):
                     devices_info.append(device_stats)
                     continue
 
-                # Ottieni stats
+                # Ottieni stats (questo può essere lento)
                 stats = container.stats(stream=False)
 
                 # Calcola metriche con funzioni dedicate
@@ -423,6 +447,15 @@ async def get_lab_devices(response: Response):
                 device_stats["status"] = "error"
 
             devices_info.append(device_stats)
+
+        # Salva in cache
+        _stats_cache.set(cache_key, devices_info)
+
+        return JSONResponse(content={"devices": devices_info})
+
+    except Exception as e:
+        logging.error(f"Error getting devices: {e}")
+        return error_5xx(response, message=f"Error getting devices: {str(e)}")
 
     except Exception as e:
         logging.error(f"Error connecting to Docker: {e}")
