@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Card, Button, Alert, Badge, Form, Spinner, Row, Col, ProgressBar } from 'react-bootstrap';
+import { Container, Card, Button, Alert, Badge, Form, Spinner, Row, Col, ProgressBar, Modal } from 'react-bootstrap';
 
 const API_BASE = 'http://localhost:8000/ixp';
 const CONFIGS_API = 'http://localhost:5000/configs';
@@ -11,6 +11,14 @@ const Home = () => {
     const [selectedFile, setSelectedFile] = useState('ixp.conf');
     const [devices, setDevices] = useState([]);
     const [statsPollingEnabled, setStatsPollingEnabled] = useState(true);
+
+    // Stati per Run Command
+    const [showCommandModal, setShowCommandModal] = useState(false);
+    const [selectedDevice, setSelectedDevice] = useState('');
+    const [command, setCommand] = useState('');
+    const [commandOutput, setCommandOutput] = useState('');
+    const [commandLoading, setCommandLoading] = useState(false);
+    const [commandError, setCommandError] = useState('');
 
     const pollingRef = useRef(null);
     const statsPollingRef = useRef(null);
@@ -101,12 +109,6 @@ const Home = () => {
 
     const handleStart = async () => {
         try {
-            // Se c'è un lab attivo, avvisa l'utente
-            if (labStatus === 'running') {
-                if (!window.confirm('A lab is already running. It will be stopped before starting the new one. Continue?')) {
-                    return;
-                }
-            }
             setLabStatus('starting');
             setMessage(`Starting Digital Twin with file ${selectedFile}...`);
 
@@ -151,6 +153,78 @@ const Home = () => {
             setMessage(`Error stopping lab: ${error.message}`);
         }
     };
+
+    // ==================== RUN COMMAND FUNCTIONALITY ====================
+
+    const handleOpenCommandModal = () => {
+        setShowCommandModal(true);
+        setCommand('');
+        setCommandOutput('');
+        setCommandError('');
+        setSelectedDevice(devices.length > 0 ? devices[0].name : '');
+    };
+
+    const handleCloseCommandModal = () => {
+        setShowCommandModal(false);
+        setCommand('');
+        setCommandOutput('');
+        setCommandError('');
+        setSelectedDevice('');
+    };
+
+    const handleExecuteCommand = async () => {
+        if (!selectedDevice || !command.trim()) {
+            setCommandError('Please select a device and enter a command');
+            return;
+        }
+
+        setCommandLoading(true);
+        setCommandError('');
+        setCommandOutput('Executing command...');
+
+        // Timeout controller
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 secondi
+
+        try {
+            const res = await fetch(`${API_BASE}/execute_command/${encodeURIComponent(selectedDevice)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(command.trim()),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || 'Error executing command');
+            }
+
+            const data = await res.json();
+            const output = data.message || data.result || JSON.stringify(data);
+            setCommandOutput(output);
+
+        } catch (error) {
+            clearTimeout(timeoutId);
+
+            if (error.name === 'AbortError') {
+                setCommandError('Command execution timed out (60s limit). The command may still be running.');
+                setCommandOutput('Operation timeout. Try simpler commands or check backend logs.');
+            } else {
+                console.error('Error executing command:', error);
+                setCommandError(`Error: ${error.message}`);
+            }
+        } finally {
+            setCommandLoading(false);
+        }
+    };
+
+
+    // ==================== END RUN COMMAND ====================
 
     const getStatusBadge = () => {
         const statusConfig = {
@@ -245,10 +319,10 @@ const Home = () => {
                                         ? '#f5f5f5'
                                         : 'linear-gradient(135deg, #ffc107 0%, #ff9800 100%)',
                                 border: `3px solid ${labStatus === 'running'
-                                        ? '#28a745'
-                                        : labStatus === 'stopped'
-                                            ? '#9e9e9e'
-                                            : '#ffc107'
+                                    ? '#28a745'
+                                    : labStatus === 'stopped'
+                                        ? '#9e9e9e'
+                                        : '#ffc107'
                                     }`,
                                 display: 'flex',
                                 alignItems: 'center',
@@ -302,6 +376,26 @@ const Home = () => {
                                     Stop Lab
                                 </Button>
                             </div>
+
+                            {/* Run Command Button - Solo se lab è running */}
+                            {labStatus === 'running' && (
+                                <div className="mt-3">
+                                    <Button
+                                        variant="primary"
+                                        onClick={handleOpenCommandModal}
+                                        style={{
+                                            minWidth: '200px',
+                                            fontWeight: 600,
+                                            borderRadius: '6px',
+                                            padding: '0.5rem 1rem',
+                                            background: '#007bff',
+                                            border: 'none'
+                                        }}
+                                    >
+                                        ⚡ Run Command
+                                    </Button>
+                                </div>
+                            )}
                         </Col>
                     </Row>
 
@@ -428,6 +522,111 @@ const Home = () => {
                     ⚙️ Configure lab files in the <strong style={{ color: '#007bff' }}>Settings</strong> section
                 </p>
             </div>
+
+            {/* Run Command Modal */}
+            <Modal show={showCommandModal} onHide={handleCloseCommandModal} size="lg">
+                <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '1px solid #dee2e6' }}>
+                    <Modal.Title style={{ color: '#212529', fontWeight: 600 }}>
+                        ⚡ Run Command on Device
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body style={{ background: '#ffffff' }}>
+                    {commandError && (
+                        <Alert variant="danger" onClose={() => setCommandError('')} dismissible>
+                            {commandError}
+                        </Alert>
+                    )}
+
+                    <Form>
+                        <Form.Group className="mb-3">
+                            <Form.Label style={{ fontWeight: 600, color: '#495057' }}>
+                                Select Device
+                            </Form.Label>
+                            <Form.Select
+                                value={selectedDevice}
+                                onChange={(e) => setSelectedDevice(e.target.value)}
+                                style={{ borderRadius: '6px', border: '1px solid #ced4da' }}
+                            >
+                                {devices.map((device) => (
+                                    <option key={device.name} value={device.name}>
+                                        {device.name} ({device.status})
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            <Form.Text className="text-muted">
+                                Select the device where you want to execute the command
+                            </Form.Text>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label style={{ fontWeight: 600, color: '#495057' }}>
+                                Command
+                            </Form.Label>
+                            <Form.Control
+                                as="textarea"
+                                rows={3}
+                                value={command}
+                                onChange={(e) => setCommand(e.target.value)}
+                                placeholder="Example: ip addr show, ping -c 3 8.8.8.8, cat /etc/hostname"
+                                style={{
+                                    fontFamily: 'monospace',
+                                    fontSize: '13px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #ced4da'
+                                }}
+                            />
+                            <Form.Text className="text-muted">
+                                Enter the command to execute on the selected device
+                            </Form.Text>
+                        </Form.Group>
+
+                        {commandOutput && (
+                            <Form.Group className="mb-3">
+                                <Form.Label style={{ fontWeight: 600, color: '#495057' }}>
+                                    Output
+                                </Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={10}
+                                    value={commandOutput}
+                                    readOnly
+                                    style={{
+                                        fontFamily: 'monospace',
+                                        fontSize: '12px',
+                                        backgroundColor: '#f8f9fa',
+                                        borderRadius: '6px',
+                                        border: '1px solid #ced4da'
+                                    }}
+                                />
+                            </Form.Group>
+                        )}
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer style={{ background: '#f8f9fa', borderTop: '1px solid #dee2e6' }}>
+                    <Button
+                        variant="secondary"
+                        onClick={handleCloseCommandModal}
+                        style={{ background: '#6c757d', border: 'none', borderRadius: '6px' }}
+                    >
+                        Close
+                    </Button>
+                    <Button
+                        variant="primary"
+                        onClick={handleExecuteCommand}
+                        disabled={commandLoading || !selectedDevice || !command.trim()}
+                        style={{ background: '#007bff', border: 'none', borderRadius: '6px' }}
+                    >
+                        {commandLoading ? (
+                            <>
+                                <Spinner animation="border" size="sm" className="me-2" />
+                                Executing...
+                            </>
+                        ) : (
+                            '⚡ Execute Command'
+                        )}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </Container>
     );
 };

@@ -44,6 +44,170 @@ const FileManager = () => {
     }
   };
 
+  // ==================== VALIDAZIONE IP ====================
+
+  /**
+   * Valida un indirizzo IPv4 in notazione CIDR
+   * Controlla che sia un network address valido (senza host bits set)
+   */
+  const validateIPv4CIDR = (cidr) => {
+    const regex = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
+    if (!regex.test(cidr)) {
+      return { valid: false, error: 'Invalid IPv4 CIDR format. Expected: x.x.x.x/prefix' };
+    }
+
+    const [ip, prefixStr] = cidr.split('/');
+    const prefix = parseInt(prefixStr);
+
+    // Valida prefix length
+    if (prefix < 0 || prefix > 32) {
+      return { valid: false, error: 'IPv4 prefix must be between 0 and 32' };
+    }
+
+    // Valida ogni ottetto
+    const octets = ip.split('.').map(Number);
+    if (octets.some(o => o < 0 || o > 255 || isNaN(o))) {
+      return { valid: false, error: 'Invalid IPv4 address. Each octet must be 0-255' };
+    }
+
+    // Converti IP in binario (32 bit)
+    const ipBinary = octets.reduce((acc, octet) => acc * 256 + octet, 0);
+
+    // Calcola maschera di rete
+    const networkMask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+
+    // Calcola network address
+    const networkAddress = (ipBinary & networkMask) >>> 0;
+
+    // Controlla se ci sono host bits impostati
+    if (ipBinary !== networkAddress) {
+      // Calcola il network address corretto
+      const correctOctets = [
+        (networkAddress >>> 24) & 255,
+        (networkAddress >>> 16) & 255,
+        (networkAddress >>> 8) & 255,
+        networkAddress & 255
+      ];
+      const correctCIDR = `${correctOctets.join('.')}/${prefix}`;
+
+      return {
+        valid: false,
+        error: `${cidr} has host bits set. Did you mean ${correctCIDR}?`
+      };
+    }
+
+    return { valid: true };
+  };
+
+  /**
+   * Valida un indirizzo IPv6 in notazione CIDR
+   */
+  const validateIPv6CIDR = (cidr) => {
+    const regex = /^([0-9a-fA-F:]+)\/(\d{1,3})$/;
+    if (!regex.test(cidr)) {
+      return { valid: false, error: 'Invalid IPv6 CIDR format. Expected: xxxx:xxxx::/prefix' };
+    }
+
+    const [ipv6, prefixStr] = cidr.split('/');
+    const prefix = parseInt(prefixStr);
+
+    // Valida prefix length
+    if (prefix < 0 || prefix > 128) {
+      return { valid: false, error: 'IPv6 prefix must be between 0 and 128' };
+    }
+
+    // Valida formato IPv6 base
+    const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$/;
+
+    if (!ipv6Regex.test(ipv6)) {
+      return { valid: false, error: 'Invalid IPv6 address format' };
+    }
+
+    // Validazione semplificata: verifica che finisca con :: o con zeri se è un network address
+    // Per una validazione completa servirebbe una libreria
+    const normalized = ipv6.toLowerCase();
+    if (prefix < 128 && !normalized.includes('::') && !normalized.endsWith(':0')) {
+      return {
+        valid: false,
+        error: 'IPv6 network address should end with :: (e.g., 2001:db8::/32)'
+      };
+    }
+
+    return { valid: true };
+  };
+
+  /**
+   * Valida un indirizzo IP singolo (senza CIDR)
+   */
+  const validateIPAddress = (ip) => {
+    // IPv4
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (ipv4Regex.test(ip)) {
+      const octets = ip.split('.').map(Number);
+      if (octets.every(o => o >= 0 && o <= 255)) {
+        return { valid: true };
+      }
+      return { valid: false, error: 'Invalid IPv4 address. Each octet must be 0-255' };
+    }
+
+    // IPv6
+    const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^([0-9a-fA-F]{1,4}:){1,7}:$|^::(([0-9a-fA-F]{1,4}:){1,6}[0-9a-fA-F]{1,4})?$/;
+    if (ipv6Regex.test(ip)) {
+      return { valid: true };
+    }
+
+    return { valid: false, error: 'Invalid IP address format' };
+  };
+
+  /**
+   * Valida la configurazione IXP completa
+   */
+  const validateIXPConfig = (configContent) => {
+    try {
+      const config = JSON.parse(configContent);
+      const errors = [];
+
+      // Valida peering_lan
+      if (config.peering_lan) {
+        if (config.peering_lan["4"]) {
+          const ipv4Result = validateIPv4CIDR(config.peering_lan["4"]);
+          if (!ipv4Result.valid) {
+            errors.push(`Peering LAN IPv4: ${ipv4Result.error}`);
+          }
+        }
+
+        if (config.peering_lan["6"]) {
+          const ipv6Result = validateIPv6CIDR(config.peering_lan["6"]);
+          if (!ipv6Result.valid) {
+            errors.push(`Peering LAN IPv6: ${ipv6Result.error}`);
+          }
+        }
+      }
+
+      // Valida indirizzi nei route servers
+      if (config.route_servers) {
+        Object.entries(config.route_servers).forEach(([name, rs]) => {
+          if (rs.address) {
+            const ipResult = validateIPAddress(rs.address);
+            if (!ipResult.valid) {
+              errors.push(`Route Server "${name}" address: ${ipResult.error}`);
+            }
+          }
+        });
+      }
+
+      if (errors.length > 0) {
+        return { valid: false, errors };
+      }
+
+      return { valid: true };
+    } catch (e) {
+      return { valid: false, errors: ['Invalid JSON format'] };
+    }
+  };
+
+  // ==================== FINE VALIDAZIONE ====================
+
   const fetchConfigs = async () => {
     try {
       const res = await fetch('http://localhost:5000/configs');
@@ -58,6 +222,13 @@ const FileManager = () => {
 
   const createConfig = async (file) => {
     try {
+      // Valida prima di salvare
+      const validation = validateIXPConfig(file.content);
+      if (!validation.valid) {
+        setError(`Validation errors:\n${validation.errors.join('\n')}`);
+        return;
+      }
+
       const response = await fetch('http://localhost:5000/configs', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -69,6 +240,7 @@ const FileManager = () => {
       }
       await fetchConfigs();
       setError('');
+      setShowModal(false);
     } catch (error) {
       setError(error.message || 'Error creating config');
     }
@@ -76,6 +248,13 @@ const FileManager = () => {
 
   const updateConfig = async (file) => {
     try {
+      // Valida prima di salvare
+      const validation = validateIXPConfig(file.content);
+      if (!validation.valid) {
+        setError(`Validation errors:\n${validation.errors.join('\n')}`);
+        return;
+      }
+
       const response = await fetch(`http://localhost:5000/configs/${encodeURIComponent(file.name)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,6 +266,7 @@ const FileManager = () => {
       }
       await fetchConfigs();
       setError('');
+      setShowModal(false);
     } catch (error) {
       setError(error.message || 'Error updating config');
     }
@@ -133,6 +313,7 @@ const FileManager = () => {
       }
       await fetchResources();
       setError('');
+      setShowModal(false);
     } catch (error) {
       setError(error.message || 'Error creating resource');
     }
@@ -151,6 +332,7 @@ const FileManager = () => {
       }
       await fetchResources();
       setError('');
+      setShowModal(false);
     } catch (error) {
       setError(error.message || 'Error updating resource');
     }
@@ -199,6 +381,13 @@ const FileManager = () => {
           setError('Config file must contain valid JSON');
           return;
         }
+
+        // Valida IP addresses
+        const validation = validateIXPConfig(content);
+        if (!validation.valid) {
+          setError(`Validation errors in uploaded file:\n${validation.errors.join('\n')}`);
+          return;
+        }
       } else {
         const validExtensions = ['.json', '.dump', '.conf'];
         const hasValidExt = validExtensions.some(ext => fileName.endsWith(ext));
@@ -236,8 +425,8 @@ const FileManager = () => {
     } else {
       const template = type === 'config'
         ? {
-          name: 'ixp.conf',
-          content: JSON.stringify(IXP_CONFIG_TEMPLATE, null, 4)
+          name: '',  // Nome vuoto per forzare l'utente a specificarlo
+          content: ''  // Contenuto vuoto - il form gestirà i valori di default
         }
         : { name: 'new-resource.json', content: '' };
       setCurrentFile(template);
@@ -247,6 +436,7 @@ const FileManager = () => {
     setShowModal(true);
     setError('');
   };
+
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -275,10 +465,6 @@ const FileManager = () => {
       } else {
         await createResource(currentFile);
       }
-    }
-
-    if (!error) {
-      setShowModal(false);
     }
   };
 
@@ -344,7 +530,7 @@ const FileManager = () => {
 
   return (
     <Container className="py-5" style={{ maxWidth: '1200px' }}>
-      <Card style={{ 
+      <Card style={{
         background: '#ffffff',
         border: '1px solid #dee2e6',
         borderRadius: '8px'
@@ -360,7 +546,7 @@ const FileManager = () => {
         </Card.Header>
         <Card.Body className="p-4">
           {error && (
-            <Alert variant="danger" dismissible onClose={() => setError('')}>
+            <Alert variant="danger" dismissible onClose={() => setError('')} style={{ whiteSpace: 'pre-line' }}>
               {error}
             </Alert>
           )}
@@ -380,15 +566,15 @@ const FileManager = () => {
           >
             <Tab eventKey="configs" title={`IXP Configurations (${configs.length})`}>
               <div className="d-flex gap-2 mb-3">
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   onClick={() => handleShowModal(null, 'config')}
                   style={{ background: '#007bff', border: 'none', borderRadius: '6px' }}
                 >
                   New Config
                 </Button>
-                <Button 
-                  variant="success" 
+                <Button
+                  variant="success"
                   onClick={() => handleUploadClick('config')}
                   style={{ background: '#28a745', border: 'none', borderRadius: '6px' }}
                 >
@@ -400,15 +586,15 @@ const FileManager = () => {
 
             <Tab eventKey="resources" title={`Resources (${resources.length})`}>
               <div className="d-flex gap-2 mb-3">
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   onClick={() => handleShowModal(null, 'resource')}
                   style={{ background: '#007bff', border: 'none', borderRadius: '6px' }}
                 >
                   New Resource
                 </Button>
-                <Button 
-                  variant="success" 
+                <Button
+                  variant="success"
                   onClick={() => handleUploadClick('resource')}
                   style={{ background: '#28a745', border: 'none', borderRadius: '6px' }}
                 >
@@ -440,11 +626,9 @@ const FileManager = () => {
                 } else {
                   createConfig(fileData);
                 }
-                if (!error) {
-                  setShowModal(false);
-                }
               }}
               onCancel={handleCloseModal}
+              validateConfig={validateIXPConfig}
             />
           ) : (
             <Form>
@@ -484,15 +668,15 @@ const FileManager = () => {
         </Modal.Body>
         {fileType !== 'config' && (
           <Modal.Footer style={{ background: '#f8f9fa', borderTop: '1px solid #dee2e6' }}>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               onClick={handleCloseModal}
               style={{ background: '#6c757d', border: 'none', borderRadius: '6px' }}
             >
               Cancel
             </Button>
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               onClick={handleSave}
               style={{ background: '#007bff', border: 'none', borderRadius: '6px' }}
             >
