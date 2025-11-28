@@ -269,7 +269,6 @@ async def get_ribs_diff(
     try:
         ribs_names = get_rib_names_from_ixpconf_name(ixp_conf_name)
         
-        # Converti machine_ip_type in stringa per accedere al dizionario
         ip_type_key = str(machine_ip_type)
         
         if ip_type_key not in ribs_names:
@@ -282,7 +281,6 @@ async def get_ribs_diff(
         logging.info(f"Executing 'bgpctl show rib' on {machine_name}")
         command_result = execute_command_on_machine(machine_name, "bgpctl show rib", ServerContext.get_lab())
         
-        # Il nuovo execute_command_on_machine restituisce una stringa
         actual_ribs_content = command_result if isinstance(command_result, str) else str(command_result)
         
         if not actual_ribs_content or actual_ribs_content.strip() == "":
@@ -292,12 +290,16 @@ async def get_ribs_diff(
             )
         
         # Crea dump dall'output attuale
+        logging.info(f"Parsing actual RIB from {machine_name}")
         actual_rib_dump = RibDump(actual_ribs_content)
+        logging.info(f"Actual RIB has {len(actual_rib_dump)} routes")
         
         # Carica dump atteso dal file
         expected_rib_file = ribs_names[ip_type_key]
+        logging.info(f"Loading expected RIB from {expected_rib_file}")
         expected_ribs_content = get_resource_file(expected_rib_file)
         expected_rib_dump = RibDump(expected_ribs_content)
+        logging.info(f"Expected RIB has {len(expected_rib_dump)} routes")
         
         # Calcola differenze
         intersection = actual_rib_dump.intersection(expected_rib_dump)
@@ -306,21 +308,27 @@ async def get_ribs_diff(
         
         logging.info(f"RIB diff completed: {len(intersection)} matching, {len(not_loaded)} not loaded, {len(extra_routes)} extra")
         
-        return success_2xx(message={
+        result = {
             'rib_names': ribs_names,
-            'expected_rib_len': len(expected_rib_dump.rib_lines),
-            'actual_rib_len': len(actual_rib_dump.rib_lines),
+            'expected_rib_len': len(expected_rib_dump),
+            'actual_rib_len': len(actual_rib_dump),
             'inters': len(intersection),
             'notloaded': len(not_loaded),
             'missing': len(extra_routes),
-        })
+        }
+        
+        # Aggiungi SEMPRE le liste complete (ordinate)
+        result['not_loaded_routes'] = sorted([str(r) for r in not_loaded])
+        result['extra_routes'] = sorted([str(r) for r in extra_routes])
+        result['matching_routes'] = sorted([str(r) for r in intersection])
+        
+        return success_2xx(message=result)
         
     except Exception as e:
         logging.error(f"Error getting rib diff: {e}")
         import traceback
         logging.error(traceback.format_exc())
         return error_5xx(response=response, message=f"Error getting rib diff: {str(e)}")
-
 
 # Funzione helper per pulire la cache (esporta per uso in altri router)
 def clear_info_cache():

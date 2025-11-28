@@ -27,11 +27,13 @@ const Home = () => {
     const [ribDiffResult, setRibDiffResult] = useState(null);
     const [ribDiffLoading, setRibDiffLoading] = useState(false);
     const [ribDiffError, setRibDiffError] = useState('');
+    
+    // Stati per visualizzazione rotte
+    const [showNotLoadedRoutes, setShowNotLoadedRoutes] = useState(false);
+    const [showExtraRoutes, setShowExtraRoutes] = useState(false);
 
     const pollingRef = useRef(null);
     const statsPollingRef = useRef(null);
-
-    // ... (mantieni tutte le funzioni esistenti: fetchConfigFiles, fetchLabStatus, fetchDevices, handleStart, handleStop, handleExecuteCommand)
 
     const fetchConfigFiles = async () => {
         try {
@@ -251,6 +253,8 @@ const Home = () => {
         setRibDiffError('');
         setSelectedRouteServer(routeServers.length > 0 ? routeServers[0].name : '');
         setSelectedIpVersion('4');
+        setShowNotLoadedRoutes(false);
+        setShowExtraRoutes(false);
     };
 
     const handleCloseRibDiffModal = () => {
@@ -258,6 +262,8 @@ const Home = () => {
         setRibDiffResult(null);
         setRibDiffError('');
         setSelectedRouteServer('');
+        setShowNotLoadedRoutes(false);
+        setShowExtraRoutes(false);
     };
 
     const handleExecuteRibDiff = async () => {
@@ -269,6 +275,8 @@ const Home = () => {
         setRibDiffLoading(true);
         setRibDiffError('');
         setRibDiffResult(null);
+        setShowNotLoadedRoutes(false);
+        setShowExtraRoutes(false);
 
         const wasPollingEnabled = statsPollingEnabled;
         setStatsPollingEnabled(false);
@@ -304,6 +312,20 @@ const Home = () => {
         }
     };
 
+    // Funzione per scaricare le rotte come file di testo
+    const downloadRoutes = (routes, filename) => {
+        const content = routes.join('\n');
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    };
+
     const renderRibDiffResult = () => {
         if (!ribDiffResult) return null;
 
@@ -336,6 +358,7 @@ const Home = () => {
                                     <th>Metric</th>
                                     <th>Count</th>
                                     <th>Description</th>
+                                    <th style={{ width: '100px' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -343,29 +366,120 @@ const Home = () => {
                                     <td><strong>Expected Routes</strong></td>
                                     <td><Badge bg="info">{ribDiffResult.expected_rib_len}</Badge></td>
                                     <td>Routes in the dump file</td>
+                                    <td></td>
                                 </tr>
                                 <tr>
                                     <td><strong>Actual Routes</strong></td>
                                     <td><Badge bg="info">{ribDiffResult.actual_rib_len}</Badge></td>
                                     <td>Routes currently in RIB</td>
+                                    <td></td>
                                 </tr>
                                 <tr className="table-success">
                                     <td><strong>Matching Routes</strong></td>
                                     <td><Badge bg="success">{ribDiffResult.inters}</Badge></td>
                                     <td>Routes present in both</td>
+                                    <td></td>
                                 </tr>
                                 <tr className="table-warning">
                                     <td><strong>Not Loaded</strong></td>
                                     <td><Badge bg="warning">{ribDiffResult.notloaded}</Badge></td>
                                     <td>Routes in dump but not in RIB</td>
+                                    <td>
+                                        {ribDiffResult.notloaded > 0 && (
+                                            <Button 
+                                                variant="outline-warning" 
+                                                size="sm"
+                                                onClick={() => setShowNotLoadedRoutes(!showNotLoadedRoutes)}
+                                            >
+                                                {showNotLoadedRoutes ? 'Hide' : 'Show'}
+                                            </Button>
+                                        )}
+                                    </td>
                                 </tr>
                                 <tr className="table-danger">
                                     <td><strong>Extra Routes</strong></td>
                                     <td><Badge bg="danger">{ribDiffResult.missing}</Badge></td>
                                     <td>Routes in RIB but not in dump</td>
+                                    <td>
+                                        {ribDiffResult.missing > 0 && (
+                                            <Button 
+                                                variant="outline-danger" 
+                                                size="sm"
+                                                onClick={() => setShowExtraRoutes(!showExtraRoutes)}
+                                            >
+                                                {showExtraRoutes ? 'Hide' : 'Show'}
+                                            </Button>
+                                        )}
+                                    </td>
                                 </tr>
                             </tbody>
                         </Table>
+
+                        {/* Not Loaded Routes */}
+                        {showNotLoadedRoutes && ribDiffResult.not_loaded_routes && ribDiffResult.not_loaded_routes.length > 0 && (
+                            <Alert variant="warning" className="mt-3">
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Routes Not Loaded ({ribDiffResult.not_loaded_routes.length})</strong>
+                                    <Button 
+                                        variant="warning" 
+                                        size="sm"
+                                        onClick={() => downloadRoutes(ribDiffResult.not_loaded_routes, 'not_loaded_routes.txt')}
+                                    >
+                                        📥 Download
+                                    </Button>
+                                </div>
+                                <div style={{ 
+                                    maxHeight: '300px', 
+                                    overflowY: 'auto', 
+                                    backgroundColor: '#fff', 
+                                    padding: '10px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #ffc107'
+                                }}>
+                                    <pre style={{ 
+                                        fontFamily: 'monospace', 
+                                        fontSize: '12px', 
+                                        margin: 0,
+                                        whiteSpace: 'pre-wrap'
+                                    }}>
+                                        {ribDiffResult.not_loaded_routes.join('\n')}
+                                    </pre>
+                                </div>
+                            </Alert>
+                        )}
+
+                        {/* Extra Routes */}
+                        {showExtraRoutes && ribDiffResult.extra_routes && ribDiffResult.extra_routes.length > 0 && (
+                            <Alert variant="danger" className="mt-3">
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Extra Routes ({ribDiffResult.extra_routes.length})</strong>
+                                    <Button 
+                                        variant="danger" 
+                                        size="sm"
+                                        onClick={() => downloadRoutes(ribDiffResult.extra_routes, 'extra_routes.txt')}
+                                    >
+                                        📥 Download
+                                    </Button>
+                                </div>
+                                <div style={{ 
+                                    maxHeight: '300px', 
+                                    overflowY: 'auto', 
+                                    backgroundColor: '#fff', 
+                                    padding: '10px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #dc3545'
+                                }}>
+                                    <pre style={{ 
+                                        fontFamily: 'monospace', 
+                                        fontSize: '12px', 
+                                        margin: 0,
+                                        whiteSpace: 'pre-wrap'
+                                    }}>
+                                        {ribDiffResult.extra_routes.join('\n')}
+                                    </pre>
+                                </div>
+                            </Alert>
+                        )}
 
                         {ribDiffResult.rib_names && (
                             <div className="mt-2">
@@ -554,13 +668,14 @@ const Home = () => {
                                         variant="info"
                                         onClick={handleOpenRibDiffModal}
                                         disabled={getRouteServers().length === 0}
-                                        style={{
+                                        style={{   
                                             minWidth: '150px',
                                             fontWeight: 600,
                                             borderRadius: '6px',
                                             padding: '0.5rem 1rem',
                                             background: '#17a2b8',
-                                            border: 'none'
+                                            border: 'none',
+                                            color: '#ffffff'
                                         }}
                                     >
                                         📊 RIB Diff
