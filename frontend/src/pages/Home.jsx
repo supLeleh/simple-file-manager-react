@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Card, Button, Alert, Badge, Form, Spinner, Row, Col, ProgressBar, Modal } from 'react-bootstrap';
+import { Container, Card, Button, Alert, Badge, Form, Spinner, Row, Col, ProgressBar, Modal, Table } from 'react-bootstrap';
 
 const API_BASE = 'http://localhost:8000/ixp';
 const CONFIGS_API = 'http://localhost:5000/configs';
@@ -20,8 +20,18 @@ const Home = () => {
     const [commandLoading, setCommandLoading] = useState(false);
     const [commandError, setCommandError] = useState('');
 
+    // Stati per RIB Diff
+    const [showRibDiffModal, setShowRibDiffModal] = useState(false);
+    const [selectedRouteServer, setSelectedRouteServer] = useState('');
+    const [selectedIpVersion, setSelectedIpVersion] = useState('4');
+    const [ribDiffResult, setRibDiffResult] = useState(null);
+    const [ribDiffLoading, setRibDiffLoading] = useState(false);
+    const [ribDiffError, setRibDiffError] = useState('');
+
     const pollingRef = useRef(null);
     const statsPollingRef = useRef(null);
+
+    // ... (mantieni tutte le funzioni esistenti: fetchConfigFiles, fetchLabStatus, fetchDevices, handleStart, handleStop, handleExecuteCommand)
 
     const fetchConfigFiles = async () => {
         try {
@@ -79,7 +89,7 @@ const Home = () => {
     useEffect(() => {
         fetchConfigFiles();
         fetchLabStatus();
-        pollingRef.current = setInterval(fetchLabStatus, 10000); // Da 5s a 10s
+        pollingRef.current = setInterval(fetchLabStatus, 10000);
 
         return () => {
             if (pollingRef.current) {
@@ -96,7 +106,7 @@ const Home = () => {
 
         if (labStatus === 'running' && statsPollingEnabled) {
             fetchDevices();
-            statsPollingRef.current = setInterval(fetchDevices, 10000); // Da 5s a 10s
+            statsPollingRef.current = setInterval(fetchDevices, 10000);
         }
 
         return () => {
@@ -106,7 +116,6 @@ const Home = () => {
             }
         };
     }, [labStatus, statsPollingEnabled]);
-
 
     const handleStart = async () => {
         try {
@@ -183,7 +192,6 @@ const Home = () => {
         setCommandError('');
         setCommandOutput('Executing command...');
 
-        // Disabilita temporaneamente il polling
         const wasPollingEnabled = statsPollingEnabled;
         setStatsPollingEnabled(false);
 
@@ -224,16 +232,155 @@ const Home = () => {
             }
         } finally {
             setCommandLoading(false);
-            // Riabilita il polling dopo 2 secondi
             setTimeout(() => {
                 setStatsPollingEnabled(wasPollingEnabled);
             }, 2000);
         }
     };
 
+    // ==================== RIB DIFF FUNCTIONALITY ====================
 
+    const getRouteServers = () => {
+        return devices.filter(d => d.name.toLowerCase().includes('rs') || d.name.toLowerCase().includes('route'));
+    };
 
-    // ==================== END RUN COMMAND ====================
+    const handleOpenRibDiffModal = () => {
+        const routeServers = getRouteServers();
+        setShowRibDiffModal(true);
+        setRibDiffResult(null);
+        setRibDiffError('');
+        setSelectedRouteServer(routeServers.length > 0 ? routeServers[0].name : '');
+        setSelectedIpVersion('4');
+    };
+
+    const handleCloseRibDiffModal = () => {
+        setShowRibDiffModal(false);
+        setRibDiffResult(null);
+        setRibDiffError('');
+        setSelectedRouteServer('');
+    };
+
+    const handleExecuteRibDiff = async () => {
+        if (!selectedRouteServer) {
+            setRibDiffError('Please select a route server');
+            return;
+        }
+
+        setRibDiffLoading(true);
+        setRibDiffError('');
+        setRibDiffResult(null);
+
+        const wasPollingEnabled = statsPollingEnabled;
+        setStatsPollingEnabled(false);
+
+        try {
+            const params = new URLSearchParams({
+                machine_name: selectedRouteServer,
+                machine_ip_type: selectedIpVersion,
+                ixp_conf_arg: selectedFile
+            });
+
+            const res = await fetch(`${API_BASE}/info/ribs/diff?${params.toString()}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Error executing RIB diff');
+            }
+
+            const data = await res.json();
+            setRibDiffResult(data.message || data);
+
+        } catch (error) {
+            console.error('Error executing RIB diff:', error);
+            setRibDiffError(`Error: ${error.message}`);
+        } finally {
+            setRibDiffLoading(false);
+            setTimeout(() => {
+                setStatsPollingEnabled(wasPollingEnabled);
+            }, 2000);
+        }
+    };
+
+    const renderRibDiffResult = () => {
+        if (!ribDiffResult) return null;
+
+        const isIdentical = ribDiffResult.notloaded === 0 && ribDiffResult.missing === 0;
+        const matchPercentage = ribDiffResult.expected_rib_len > 0
+            ? ((ribDiffResult.inters / ribDiffResult.expected_rib_len) * 100).toFixed(2)
+            : 0;
+
+        return (
+            <div className="mt-3">
+                {isIdentical ? (
+                    <Alert variant="success">
+                        <Alert.Heading>✓ RIB Match Perfect!</Alert.Heading>
+                        <p className="mb-0">
+                            The current RIB is identical to the expected dump file. All {ribDiffResult.expected_rib_len} routes match.
+                        </p>
+                    </Alert>
+                ) : (
+                    <>
+                        <Alert variant="warning">
+                            <Alert.Heading>⚠ RIB Differences Detected</Alert.Heading>
+                            <p className="mb-0">
+                                The current RIB differs from the expected dump. Match percentage: {matchPercentage}%
+                            </p>
+                        </Alert>
+
+                        <Table striped bordered hover size="sm" className="mt-3">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Count</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Expected Routes</strong></td>
+                                    <td><Badge bg="info">{ribDiffResult.expected_rib_len}</Badge></td>
+                                    <td>Routes in the dump file</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Actual Routes</strong></td>
+                                    <td><Badge bg="info">{ribDiffResult.actual_rib_len}</Badge></td>
+                                    <td>Routes currently in RIB</td>
+                                </tr>
+                                <tr className="table-success">
+                                    <td><strong>Matching Routes</strong></td>
+                                    <td><Badge bg="success">{ribDiffResult.inters}</Badge></td>
+                                    <td>Routes present in both</td>
+                                </tr>
+                                <tr className="table-warning">
+                                    <td><strong>Not Loaded</strong></td>
+                                    <td><Badge bg="warning">{ribDiffResult.notloaded}</Badge></td>
+                                    <td>Routes in dump but not in RIB</td>
+                                </tr>
+                                <tr className="table-danger">
+                                    <td><strong>Extra Routes</strong></td>
+                                    <td><Badge bg="danger">{ribDiffResult.missing}</Badge></td>
+                                    <td>Routes in RIB but not in dump</td>
+                                </tr>
+                            </tbody>
+                        </Table>
+
+                        {ribDiffResult.rib_names && (
+                            <div className="mt-2">
+                                <small className="text-muted">
+                                    <strong>Dump files used:</strong> IPv4: {ribDiffResult.rib_names[4]}, IPv6: {ribDiffResult.rib_names[6]}
+                                </small>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        );
+    };
+
+    // ==================== END RIB DIFF ====================
 
     const getStatusBadge = () => {
         const statusConfig = {
@@ -328,10 +475,10 @@ const Home = () => {
                                         ? '#f5f5f5'
                                         : 'linear-gradient(135deg, #ffc107 0%, #ff9800 100%)',
                                 border: `3px solid ${labStatus === 'running'
-                                    ? '#28a745'
-                                    : labStatus === 'stopped'
-                                        ? '#9e9e9e'
-                                        : '#ffc107'
+                                        ? '#28a745'
+                                        : labStatus === 'stopped'
+                                            ? '#9e9e9e'
+                                            : '#ffc107'
                                     }`,
                                 display: 'flex',
                                 alignItems: 'center',
@@ -386,14 +533,14 @@ const Home = () => {
                                 </Button>
                             </div>
 
-                            {/* Run Command Button - Solo se lab è running */}
+                            {/* Action Buttons - Solo se lab è running */}
                             {labStatus === 'running' && (
-                                <div className="mt-3">
+                                <div className="mt-3 d-flex gap-2 justify-content-center">
                                     <Button
                                         variant="primary"
                                         onClick={handleOpenCommandModal}
                                         style={{
-                                            minWidth: '200px',
+                                            minWidth: '150px',
                                             fontWeight: 600,
                                             borderRadius: '6px',
                                             padding: '0.5rem 1rem',
@@ -402,6 +549,21 @@ const Home = () => {
                                         }}
                                     >
                                         ⚡ Run Command
+                                    </Button>
+                                    <Button
+                                        variant="info"
+                                        onClick={handleOpenRibDiffModal}
+                                        disabled={getRouteServers().length === 0}
+                                        style={{
+                                            minWidth: '150px',
+                                            fontWeight: 600,
+                                            borderRadius: '6px',
+                                            padding: '0.5rem 1rem',
+                                            background: '#17a2b8',
+                                            border: 'none'
+                                        }}
+                                    >
+                                        📊 RIB Diff
                                     </Button>
                                 </div>
                             )}
@@ -446,7 +608,7 @@ const Home = () => {
                             id="stats-polling-switch"
                             label={
                                 <span style={{ color: '#495057', fontWeight: 500 }}>
-                                    Auto-refresh (5s)
+                                    Auto-refresh (10s)
                                     {statsPollingEnabled && (
                                         <Spinner animation="grow" size="sm" className="ms-2" variant="primary" />
                                     )}
@@ -632,6 +794,103 @@ const Home = () => {
                             </>
                         ) : (
                             '⚡ Execute Command'
+                        )}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
+            {/* RIB Diff Modal */}
+            <Modal show={showRibDiffModal} onHide={handleCloseRibDiffModal} size="lg">
+                <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '1px solid #dee2e6' }}>
+                    <Modal.Title style={{ color: '#212529', fontWeight: 600 }}>
+                        📊 RIB Diff Analysis
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body style={{ background: '#ffffff' }}>
+                    {ribDiffError && (
+                        <Alert variant="danger" onClose={() => setRibDiffError('')} dismissible>
+                            {ribDiffError}
+                        </Alert>
+                    )}
+
+                    <Form>
+                        <Row>
+                            <Col md={8}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label style={{ fontWeight: 600, color: '#495057' }}>
+                                        Select Route Server
+                                    </Form.Label>
+                                    <Form.Select
+                                        value={selectedRouteServer}
+                                        onChange={(e) => setSelectedRouteServer(e.target.value)}
+                                        style={{ borderRadius: '6px', border: '1px solid #ced4da' }}
+                                    >
+                                        {getRouteServers().map((rs) => (
+                                            <option key={rs.name} value={rs.name}>
+                                                {rs.name} ({rs.status})
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                    <Form.Text className="text-muted">
+                                        Select the route server to analyze
+                                    </Form.Text>
+                                </Form.Group>
+                            </Col>
+                            <Col md={4}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label style={{ fontWeight: 600, color: '#495057' }}>
+                                        IP Version
+                                    </Form.Label>
+                                    <Form.Select
+                                        value={selectedIpVersion}
+                                        onChange={(e) => setSelectedIpVersion(e.target.value)}
+                                        style={{ borderRadius: '6px', border: '1px solid #ced4da' }}
+                                    >
+                                        <option value="4">IPv4</option>
+                                        <option value="6">IPv6</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        </Row>
+
+                        <Alert variant="info" className="mb-3">
+                            <small>
+                                <strong>ℹ️ Info:</strong> This will execute <code>bgpctl show rib</code> on the selected route server
+                                and compare it with the expected dump file from the configuration.
+                            </small>
+                        </Alert>
+                    </Form>
+
+                    {ribDiffLoading && (
+                        <div className="text-center p-4">
+                            <Spinner animation="border" variant="primary" />
+                            <p className="mt-2 text-muted">Analyzing RIB... This may take a moment.</p>
+                        </div>
+                    )}
+
+                    {renderRibDiffResult()}
+                </Modal.Body>
+                <Modal.Footer style={{ background: '#f8f9fa', borderTop: '1px solid #dee2e6' }}>
+                    <Button
+                        variant="secondary"
+                        onClick={handleCloseRibDiffModal}
+                        style={{ background: '#6c757d', border: 'none', borderRadius: '6px' }}
+                    >
+                        Close
+                    </Button>
+                    <Button
+                        variant="primary"
+                        onClick={handleExecuteRibDiff}
+                        disabled={ribDiffLoading || !selectedRouteServer}
+                        style={{ background: '#17a2b8', border: 'none', borderRadius: '6px' }}
+                    >
+                        {ribDiffLoading ? (
+                            <>
+                                <Spinner animation="border" size="sm" className="me-2" />
+                                Analyzing...
+                            </>
+                        ) : (
+                            '📊 Execute RIB Diff'
                         )}
                     </Button>
                 </Modal.Footer>

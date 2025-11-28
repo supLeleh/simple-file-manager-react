@@ -251,7 +251,7 @@ async def get_ribs_diff(
     response: Response, 
     machine_name: str, 
     ixp_conf_arg: str | None = None, 
-    machine_ip_type: int = Query(default=None, ge=4, le=6)
+    machine_ip_type: int = Query(default=4, ge=4, le=6)
 ):
     ixp_conf_name = ixp_conf_arg if ixp_conf_arg else ServerContext.get_ixpconf_filename()
     
@@ -269,26 +269,56 @@ async def get_ribs_diff(
     try:
         ribs_names = get_rib_names_from_ixpconf_name(ixp_conf_name)
         
-        # Esegui comando
+        # Converti machine_ip_type in stringa per accedere al dizionario
+        ip_type_key = str(machine_ip_type)
+        
+        if ip_type_key not in ribs_names:
+            return error_4xx(
+                response=response, 
+                message=f"No RIB dump configured for IPv{machine_ip_type}"
+            )
+        
+        # Esegui comando bgpctl show rib
+        logging.info(f"Executing 'bgpctl show rib' on {machine_name}")
         command_result = execute_command_on_machine(machine_name, "bgpctl show rib", ServerContext.get_lab())
         
         # Il nuovo execute_command_on_machine restituisce una stringa
-        actual_ribs_content = command_result if isinstance(command_result, str) else command_result.get("stdout", "")
+        actual_ribs_content = command_result if isinstance(command_result, str) else str(command_result)
         
+        if not actual_ribs_content or actual_ribs_content.strip() == "":
+            return error_4xx(
+                response=response,
+                message=f"Empty or invalid RIB output from {machine_name}"
+            )
+        
+        # Crea dump dall'output attuale
         actual_rib_dump = RibDump(actual_ribs_content)
-        expected_ribs_content = get_resource_file(ribs_names[machine_ip_type])
+        
+        # Carica dump atteso dal file
+        expected_rib_file = ribs_names[ip_type_key]
+        expected_ribs_content = get_resource_file(expected_rib_file)
         expected_rib_dump = RibDump(expected_ribs_content)
+        
+        # Calcola differenze
+        intersection = actual_rib_dump.intersection(expected_rib_dump)
+        not_loaded = expected_rib_dump.difference(actual_rib_dump)
+        extra_routes = actual_rib_dump.difference(expected_rib_dump)
+        
+        logging.info(f"RIB diff completed: {len(intersection)} matching, {len(not_loaded)} not loaded, {len(extra_routes)} extra")
         
         return success_2xx(message={
             'rib_names': ribs_names,
             'expected_rib_len': len(expected_rib_dump.rib_lines),
             'actual_rib_len': len(actual_rib_dump.rib_lines),
-            'inters': len(actual_rib_dump.intersection(expected_rib_dump)),
-            'notloaded': len(expected_rib_dump.difference(actual_rib_dump)),
-            'missing': len(actual_rib_dump.difference(expected_rib_dump)),
+            'inters': len(intersection),
+            'notloaded': len(not_loaded),
+            'missing': len(extra_routes),
         })
+        
     except Exception as e:
         logging.error(f"Error getting rib diff: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
         return error_5xx(response=response, message=f"Error getting rib diff: {str(e)}")
 
 
